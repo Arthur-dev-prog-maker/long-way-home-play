@@ -27,6 +27,17 @@
   .panic i{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,#ffd23a,#ff7a1a 55%,#ff2a3a);transition:width .15s}
   .panicLbl{font-size:10px;letter-spacing:.18em;color:#ffcf9a;margin-top:-3px;text-shadow:0 1px 2px #000}
   .panic.hot{animation:pulse .5s infinite alternate}
+  /* tier ticks: the meter now has thresholds, so show where they are */
+  .panic u{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4)}
+  .panic u.edgy{left:40%}
+  .panic u.hunted{left:75%}
+  /* stealth read-out: QUIET while walking, HIDDEN in cover */
+  .pip{font-size:10px;letter-spacing:.2em;font-weight:700;color:#bfe9ff;text-shadow:0 1px 2px #000;
+       opacity:0;transition:opacity .18s;margin-top:1px;height:12px}
+  .pip.hid{color:#7affc8}
+  /* cover vignette: the screen closes in a little when you are pressed into somewhere dark */
+  .vig{position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;transition:opacity .25s;
+       box-shadow:inset 0 0 120px 40px rgba(0,8,14,.72)}
   @keyframes pulse{to{box-shadow:0 0 14px #ff3a3a}}
   .tr{position:absolute;right:max(10px,env(safe-area-inset-right));top:10px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
   #mini{width:132px;height:132px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:#111;box-shadow:0 2px 12px rgba(0,0,0,.5)}
@@ -78,12 +89,14 @@
 <canvas id="gl"></canvas>
 <div id="joyBase"><div id="joyKnob"></div></div>
 
+<div class="vig" id="vig"></div>
 <div class="hud hidden" id="hud">
   <div class="tl"><button class="ibtn" id="btnPause" aria-label="Pause">❚❚</button><button class="ibtn" id="btnFs" aria-label="Fullscreen">⛶</button></div>
   <div class="obj">
     <div class="objrow"><span class="arrow" id="objArrow">▲</span><span id="objLabel">Objective</span><span class="dist" id="objDist"></span></div>
-    <div class="panic" id="panic"><i id="panicFill"></i></div>
-    <div class="panicLbl">PANIC</div>
+    <div class="panic" id="panic"><i id="panicFill"></i><u class="edgy"></u><u class="hunted"></u></div>
+    <div class="panicLbl" id="panicLbl">PANIC</div>
+    <div class="pip" id="pip"></div>
   </div>
   <div class="tr"><canvas id="mini" width="264" height="264"></canvas><div class="stats"><span class="pill">✦ <b id="coinN">0</b></span><span class="pill">LOG <b id="logN">0</b></span></div></div>
   <div class="hint" id="hint"></div>
@@ -118,6 +131,6 @@
 </div>
 <div id="loading" hidden><div class="spin"></div><div id="loadingText">Loading…</div></div>
 <div id="rotate">Turn your phone sideways to play.</div>
-<script type="module" src="game.js?v=c9148ae"></script>
+<script type="module" src="game.js?v=84224f7"></script>
 </body>
 </html>

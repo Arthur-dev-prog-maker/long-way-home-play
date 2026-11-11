@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05030e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Long Way Home 3D</title>
+<meta name="description" content="A 3D open-world adventure. A stranded alien crosses Chicago, New York and Miami to get back to the ship at Area 51.">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon-192.png">
+<style>
+  :root{ --glow:#3ff0ff; --bulb:#ffe45a; --ink:#0b0f1e; --panel:rgba(10,14,30,.78); }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#fff;touch-action:none}
+  canvas#gl{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+  .hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  .hud.hidden{display:none}
+  .tl{position:absolute;left:max(10px,env(safe-area-inset-left));top:10px;display:flex;gap:8px;pointer-events:auto}
+  .ibtn{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:var(--panel);color:#fff;font-size:17px;display:grid;place-items:center;cursor:pointer}
+  .obj{position:absolute;left:50%;top:8px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;min-width:240px}
+  .objrow{display:flex;align-items:center;gap:8px;background:var(--panel);padding:6px 12px 6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:600;white-space:nowrap}
+  .arrow{width:22px;height:22px;display:grid;place-items:center;color:var(--bulb);font-size:18px;transition:transform .08s linear}
+  .dist{color:#b9c3e6;font-weight:500}
+  .panic{width:220px;height:12px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);overflow:hidden;position:relative}
+  .panic i{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,#ffd23a,#ff7a1a 55%,#ff2a3a);transition:width .15s}
+  .panicLbl{font-size:10px;letter-spacing:.18em;color:#ffcf9a;margin-top:-3px;text-shadow:0 1px 2px #000}
+  .panic.hot{animation:pulse .5s infinite alternate}
+  @keyframes pulse{to{box-shadow:0 0 14px #ff3a3a}}
+  .tr{position:absolute;right:max(10px,env(safe-area-inset-right));top:10px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  #mini{width:132px;height:132px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:#111;box-shadow:0 2px 12px rgba(0,0,0,.5)}
+  .stats{display:flex;gap:6px}
+  .pill{background:var(--panel);padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.12)}
+  .pill b{color:var(--bulb)}
+  .br{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));width:210px;height:170px;pointer-events:none}
+  .gbtn{position:absolute;border-radius:50%;display:grid;place-items:center;font-weight:800;letter-spacing:.06em;pointer-events:auto;border:2px solid rgba(255,255,255,.35);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+  #btnJump{right:0;bottom:0;width:96px;height:96px;background:radial-gradient(circle at 35% 30%,#ffe98a,#e8a91a);font-size:14px;color:#3a2600;text-shadow:none}
+  #btnPower{right:108px;bottom:44px;width:78px;height:78px;background:radial-gradient(circle at 35% 30%,#8ff8ff,#1898b8);font-size:12px;color:#03252e;text-shadow:none}
+  #btnPower.cool{filter:grayscale(.8) brightness(.6)}
+  .gbtn.down{transform:scale(.92);filter:brightness(1.15)}
+  #joyBase{position:fixed;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);display:none;z-index:6;pointer-events:none}
+  #joyKnob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55)}
+  .hint{position:absolute;left:18px;bottom:22px;font-size:12px;color:rgba(255,255,255,.75);max-width:42vw;text-shadow:0 1px 3px #000;line-height:1.35}
+  .toast{position:fixed;left:50%;top:84px;transform:translateX(-50%);background:var(--panel);border:1px solid rgba(63,240,255,.45);padding:10px 16px;border-radius:14px;max-width:min(560px,80vw);font-size:14px;line-height:1.4;z-index:8;pointer-events:none;text-align:center}
+  .toast b{display:block;color:var(--glow);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}
+  .flash{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 40%,rgba(255,0,30,.55));pointer-events:none;opacity:0;transition:opacity .3s;z-index:7}
+  .ov{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(5,6,20,.55),rgba(5,6,20,.82));padding:20px}
+  .ov.clear{background:linear-gradient(180deg,rgba(5,6,20,0) 30%,rgba(5,6,20,.75))}
+  .ov[hidden]{display:none}
+  .card{max-width:620px;text-align:center}
+  .kick{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--glow);margin-bottom:8px}
+  h1{margin:0 0 6px;font-size:clamp(34px,7vw,64px);letter-spacing:.04em;line-height:1;text-shadow:0 0 24px rgba(255,228,90,.35)}
+  h1 span{color:var(--bulb)}
+  h2{margin:0 0 10px;font-size:clamp(24px,4.5vw,38px)}
+  p{margin:0 auto 16px;color:#d6dcf2;line-height:1.5;font-size:15px;max-width:540px}
+  .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .obtn{padding:12px 22px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  .obtn.main{background:linear-gradient(180deg,#ffe98a,#e8a91a);color:#2a1a00;border:none}
+  .levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+  .lv{padding:12px 6px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);cursor:pointer;color:#fff;font-weight:700;font-size:13px}
+  .lv small{display:block;font-weight:500;color:#aab3d6;margin-top:4px;font-size:11px}
+  .lv[disabled]{opacity:.3;cursor:default}
+  .small{font-size:12px;color:#9aa4c8}
+  .small a{color:#9fdcff}
+  .statgrid{display:flex;gap:18px;justify-content:center;margin:8px 0 18px;font-size:13px;color:#b9c3e6}
+  .statgrid b{display:block;font-size:22px;color:#fff}
+  #loading{position:fixed;inset:0;z-index:20;background:#05060f;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-size:15px;color:#b9c3e6}
+  #loading[hidden]{display:none}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:var(--bulb);animation:sp 0.8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #rotate{position:fixed;inset:0;z-index:30;background:#05060f;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;color:#d6dcf2}
+  @media (orientation:portrait) and (max-width:900px){ #rotate{display:flex} }
+  @media (max-height:430px){ .br{transform:scale(.88);transform-origin:bottom right} #mini{width:112px;height:112px} .card p{font-size:14px;margin-bottom:10px} h1{font-size:40px} }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="joyBase"><div id="joyKnob"></div></div>
+
+<div class="hud hidden" id="hud">
+  <div class="tl"><button class="ibtn" id="btnPause" aria-label="Pause">❚❚</button><button class="ibtn" id="btnFs" aria-label="Fullscreen">⛶</button></div>
+  <div class="obj">
+    <div class="objrow"><span class="arrow" id="objArrow">▲</span><span id="objLabel">Objective</span><span class="dist" id="objDist"></span></div>
+    <div class="panic" id="panic"><i id="panicFill"></i></div>
+    <div class="panicLbl">PANIC</div>
+  </div>
+  <div class="tr"><canvas id="mini" width="264" height="264"></canvas><div class="stats"><span class="pill">✦ <b id="coinN">0</b></span><span class="pill">LOG <b id="logN">0</b></span></div></div>
+  <div class="hint" id="hint"></div>
+  <div class="br"><div class="gbtn" id="btnPower">BLINK</div><div class="gbtn" id="btnJump">JUMP</div></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="flash" id="flash"></div>
+
+<div class="ov clear" id="ovTitle">
+  <div class="card">
+    <div class="kick">An open-world alien road trip</div>
+    <h1>LONG WAY <span>HOME</span></h1>
+    <p>Stranded on Earth, a young alien has to cross Chicago, New York and Miami to collect three lost ship parts and get back to Area 51. People will scream. Don't let the panic spread.</p>
+    <div class="btns"><button class="obtn main" id="btnPlay">Play</button><button class="obtn" id="btnLevels">Levels</button></div>
+    <p class="small" style="margin-top:14px">Left thumb moves · drag right side to look · hold JUMP in the air to float · POWER sleeps nearby people or blinks you forward<br><a href="../">Play the original 2D version</a></p>
+  </div>
+</div>
+<div class="ov" id="ovLevels" hidden>
+  <div class="card"><h2>Choose a level</h2><div class="levels" id="levelGrid"></div><div class="btns"><button class="obtn" id="btnLvBack">Back</button></div></div>
+</div>
+<div class="ov" id="ovCard" hidden>
+  <div class="card"><div class="kick" id="cardKick"></div><h2 id="cardTitle"></h2><p id="cardText"></p><p class="small" id="cardTip"></p><div class="btns"><button class="obtn main" id="btnGo">Go</button><button class="obtn" id="btnCardBack">Levels</button></div></div>
+</div>
+<div class="ov" id="ovPause" hidden>
+  <div class="card"><h2>Paused</h2><div class="btns"><button class="obtn main" id="btnResume">Resume</button><button class="obtn" id="btnRestart">Restart level</button><button class="obtn" id="btnMute">Sound: on</button><button class="obtn" id="btnQuit">Levels</button></div></div>
+</div>
+<div class="ov" id="ovEnd" hidden>
+  <div class="card"><div class="kick" id="endKick"></div><h2 id="endTitle"></h2><p id="endStory"></p><div class="statgrid" id="endStats"></div><div class="btns"><button class="obtn main" id="btnNext">Next level</button><button class="obtn" id="btnReplay">Replay</button><button class="obtn" id="btnEndLevels">Levels</button></div></div>
+</div>
+<div class="ov" id="ovCaught" hidden>
+  <div class="card"><div class="kick" style="color:#ff7a7a">Panic hit 100%</div><h2>They called it in.</h2><p>Agents are on the way. Back to the last checkpoint.</p></div>
+</div>
+<div id="loading" hidden><div class="spin"></div><div id="loadingText">Loading…</div></div>
+<div id="rotate">Turn your phone sideways to play.</div>
+<script type="module" src="game.js?v=c9148ae"></script>
+</body>
+</html>
